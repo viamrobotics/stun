@@ -89,6 +89,9 @@ func (a *XORMappedAddress) GetFromAs(m *Message, t AttrType) error {
 	if err != nil {
 		return err
 	}
+	if len(v) <= 4 {
+		return io.ErrUnexpectedEOF
+	}
 	family := bin.Uint16(v[0:2])
 	if family != familyIPv6 && family != familyIPv4 {
 		return newDecodeErr("xor-mapped address", "family",
@@ -109,9 +112,6 @@ func (a *XORMappedAddress) GetFromAs(m *Message, t AttrType) error {
 	a.IP = a.IP[:ipLen]
 	for i := range a.IP {
 		a.IP[i] = 0
-	}
-	if len(v) <= 4 {
-		return io.ErrUnexpectedEOF
 	}
 	if err := CheckOverflow(t, len(v[4:]), len(a.IP)); err != nil {
 		return err
