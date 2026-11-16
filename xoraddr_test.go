@@ -91,6 +91,25 @@ func TestXORMappedAddress_GetFrom(t *testing.T) {
 			t.Errorf("AddTo should return *AttrOverflowErr, got: %v", err)
 		}
 	})
+	t.Run("ShortValue", func(t *testing.T) {
+		// A zero-length XOR-MAPPED-ADDRESS value at the end of a tightly allocated buffer must
+		// not panic when reading the address family: regression for CVE-2026-54909.
+		raw := []byte{
+			0x01, 0x01, 0x00, 0x04,
+			0x21, 0x12, 0xA4, 0x42,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0x00, 0x20, 0x00, 0x00,
+		}
+		m := New()
+		m.Raw = raw[:len(raw):len(raw)]
+		if err := m.Decode(); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		addr := new(XORMappedAddress)
+		if err := addr.GetFrom(m); !errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Errorf("short value: want io.ErrUnexpectedEOF, got %v", err)
+		}
+	})
 }
 
 func TestXORMappedAddress_GetFrom_Invalid(t *testing.T) {
